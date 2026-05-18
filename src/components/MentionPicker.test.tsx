@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { detectMentionAtCaret, MentionPicker } from "./MentionPicker";
 import type { Attachment } from "@/quiz/types";
@@ -13,6 +13,7 @@ const folderTree = [
       { id: 2, name: "Calc 1", parentId: 1, children: [] },
     ],
   },
+  { id: 3, name: "Physics", parentId: null, children: [] },
 ];
 
 const notes = [
@@ -20,6 +21,30 @@ const notes = [
     id: 11,
     title: "Limits",
     folderId: 2,
+    status: "completed" as const,
+    createdAt: "",
+    updatedAt: "",
+  },
+  {
+    id: 12,
+    title: "Derivatives",
+    folderId: 2,
+    status: "completed" as const,
+    createdAt: "",
+    updatedAt: "",
+  },
+  {
+    id: 21,
+    title: "Newton",
+    folderId: 3,
+    status: "completed" as const,
+    createdAt: "",
+    updatedAt: "",
+  },
+  {
+    id: 99,
+    title: "Standalone Note",
+    folderId: null,
     status: "completed" as const,
     createdAt: "",
     updatedAt: "",
@@ -48,6 +73,12 @@ describe("detectMentionAtCaret", () => {
   });
 });
 
+async function openPopover() {
+  const user = userEvent.setup();
+  await user.click(screen.getByTestId("mention-picker-trigger"));
+  return user;
+}
+
 describe("MentionPicker", () => {
   it("renders chips for current attachments and removes them on click", async () => {
     const onChange = vi.fn();
@@ -73,25 +104,47 @@ describe("MentionPicker", () => {
     ]);
   });
 
-  it("opens the popover and refreshes notes when the trigger is clicked", async () => {
-    const refresh = vi.fn().mockResolvedValue(undefined);
-    const user = userEvent.setup();
+  it("starts with folders collapsed and only shows root folders + rootless notes", async () => {
     render(
       <MentionPicker
         attachments={[]}
         folderTree={folderTree}
         allNotes={notes}
         onChange={vi.fn()}
-        onRefresh={refresh}
       />,
     );
-    await user.click(screen.getByTestId("mention-picker-trigger"));
-    expect(refresh).toHaveBeenCalled();
+    await openPopover();
+    const tree = screen.getByTestId("mention-tree");
+    expect(within(tree).getByText("Math")).toBeInTheDocument();
+    expect(within(tree).getByText("Physics")).toBeInTheDocument();
+    expect(within(tree).getByText("Standalone Note")).toBeInTheDocument();
+    expect(within(tree).queryByText("Calc 1")).toBeNull();
+    expect(within(tree).queryByText("Limits")).toBeNull();
   });
 
-  it("adds a folder attachment when the matching command item is clicked", async () => {
+  it("expands a folder to reveal its child folders and notes", async () => {
+    render(
+      <MentionPicker
+        attachments={[]}
+        folderTree={folderTree}
+        allNotes={notes}
+        onChange={vi.fn()}
+      />,
+    );
+    const user = await openPopover();
+    const tree = screen.getByTestId("mention-tree");
+    const mathRow = within(tree).getByText("Math").closest("div")!;
+    await user.click(within(mathRow).getByRole("button", { name: /expand/i }));
+    expect(within(tree).getByText("Calc 1")).toBeInTheDocument();
+
+    const calcRow = within(tree).getByText("Calc 1").closest("div")!;
+    await user.click(within(calcRow).getByRole("button", { name: /expand/i }));
+    expect(within(tree).getByText("Limits")).toBeInTheDocument();
+    expect(within(tree).getByText("Derivatives")).toBeInTheDocument();
+  });
+
+  it("attaches a specific note from inside a folder without attaching the folder", async () => {
     const onChange = vi.fn();
-    const user = userEvent.setup();
     render(
       <MentionPicker
         attachments={[]}
@@ -100,12 +153,59 @@ describe("MentionPicker", () => {
         onChange={onChange}
       />,
     );
-    await user.click(screen.getByTestId("mention-picker-trigger"));
-    const popover = await screen.findByTestId("mention-picker-popover");
-    const mathItem = within(popover).getByText("Math");
-    fireEvent.click(mathItem);
-    expect(onChange).toHaveBeenCalledWith([
-      { kind: "folder", id: 1, name: "Math" },
+    const user = await openPopover();
+    const tree = screen.getByTestId("mention-tree");
+
+    // Expand Math then Calc 1.
+    await user.click(
+      within(within(tree).getByText("Math").closest("div")!).getByRole(
+        "button",
+        { name: /expand/i },
+      ),
+    );
+    await user.click(
+      within(within(tree).getByText("Calc 1").closest("div")!).getByRole(
+        "button",
+        { name: /expand/i },
+      ),
+    );
+
+    await user.click(within(tree).getByText("Limits"));
+    expect(onChange).toHaveBeenLastCalledWith([
+      { kind: "note", id: 11, title: "Limits" },
     ]);
+  });
+
+  it("attaches an entire folder when the folder row label is clicked", async () => {
+    const onChange = vi.fn();
+    render(
+      <MentionPicker
+        attachments={[]}
+        folderTree={folderTree}
+        allNotes={notes}
+        onChange={onChange}
+      />,
+    );
+    const user = await openPopover();
+    await user.click(screen.getByText("Physics"));
+    expect(onChange).toHaveBeenLastCalledWith([
+      { kind: "folder", id: 3, name: "Physics" },
+    ]);
+  });
+
+  it("expands matching folders automatically when searching", async () => {
+    render(
+      <MentionPicker
+        attachments={[]}
+        folderTree={folderTree}
+        allNotes={notes}
+        onChange={vi.fn()}
+      />,
+    );
+    const user = await openPopover();
+    const search = screen.getByPlaceholderText(/search/i);
+    await user.type(search, "limit");
+    const tree = screen.getByTestId("mention-tree");
+    expect(within(tree).getByText("Limits")).toBeInTheDocument();
   });
 });

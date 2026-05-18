@@ -47,6 +47,15 @@ function asStoredChat(value: unknown): StoredChat | null {
   return candidate as StoredChat;
 }
 
+// The plugin SDK's storage accepts only plain JSON values. AI SDK's UIMessage
+// parts carry many optional fields (errorText, providerExecuted, preliminary,
+// …) that are routinely set to `undefined`, which Electron IPC preserves and
+// the Zod validator on the host rejects. Round-tripping through JSON drops
+// those properties (and any Date/function values) before the IPC boundary.
+function toJsonValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export class ChatStore {
   private readonly storage: ChatStorage;
 
@@ -65,17 +74,17 @@ export class ChatStore {
   }
 
   async save(chat: StoredChat): Promise<void> {
-    const next: StoredChat = {
+    const next: StoredChat = toJsonValue({
       ...chat,
       messages: chat.messages.slice(-200),
-    };
+    });
     await this.storage.set(chatKey(chat.id), next as never);
     const index = await this.list();
     const without = index.filter(entry => entry.id !== chat.id);
-    const updatedIndex = [
+    const updatedIndex = toJsonValue([
       { id: chat.id, title: chat.title, updatedAt: chat.updatedAt },
       ...without,
-    ];
+    ]);
     await this.storage.set(CHAT_INDEX_KEY, updatedIndex as never);
   }
 
@@ -84,7 +93,7 @@ export class ChatStore {
     const index = await this.list();
     await this.storage.set(
       CHAT_INDEX_KEY,
-      index.filter(entry => entry.id !== id) as never,
+      toJsonValue(index.filter(entry => entry.id !== id)) as never,
     );
   }
 }

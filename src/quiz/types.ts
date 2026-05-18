@@ -61,3 +61,25 @@ export type QuizOutput = z.infer<typeof quizOutputSchema>;
 export type Attachment =
   | { kind: "note"; id: number; title: string }
   | { kind: "folder"; id: number; name: string };
+
+/**
+ * Metadata stored on user UIMessages so the chat history can render attachment
+ * chips and the original user prompt, while the transport still feeds the LLM
+ * the fully expanded prompt (with note bodies).
+ */
+export interface QuizMessageMetadata {
+  attachments?: Attachment[];
+  /** The fully assembled prompt — what the LLM should see. */
+  fullPrompt?: string;
+  /**
+   * Marks the user message as a quiz submission so the UI renders a card
+   * instead of a plain text bubble. Only present on the "Submitted." reply
+   * that fires after the user clicks the QuizCard submit button.
+   */
+  submission?: {
+    quizTitle: string;
+    /** The toolCallId of the QuizCard this user message is submitting for. */
+    toolCallId: string;
+    answers: QuizAnswer[];
+  };
+}

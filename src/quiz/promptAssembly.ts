@@ -3,21 +3,75 @@ import type {
   PluginNoteContent,
   PluginNoteSummary,
 } from "@alt/plugin-sdk";
-import type { Attachment } from "./types";
+import type { Attachment, QuizAnswer, QuizInput } from "./types";
 
-export const QUIZ_SYSTEM_PROMPT = `You are a quiz creator embedded inside Alt, a lecture note-taking app.
+export const SUBMISSION_TEXT_HEADER = "=== QUIZ SUBMISSION ===";
 
-Workflow rules:
-1. Read the source notes the user attached below the "===NOTES===" line.
-2. Decide which question types are appropriate for the material. The available types are: multiple_choice, true_false, fill_blank, short_answer. You do NOT have to use all four — pick the ones that fit the content.
-3. Call the \`createQuiz\` tool EXACTLY ONCE to deliver the questions.
-4. The tool input must NEVER contain answers, solutions, hints, or explanations. Only emit the questions themselves.
-5. For fill_blank questions, write the prompt using the literal token "____" (four underscores) at each blank location.
-6. After you have called the tool, wait. When the user submits their answers, you will receive them as the tool result. Then, and only then, grade the submission: mark each question correct or incorrect, give a one-sentence rationale per question, and report a final score (correct / total). Be honest about ambiguous short-answer cases — accept reasonable paraphrases.
+/**
+ * Formats the user's quiz answers into a plain user-facing message the agent
+ * grades. This is the message body sent on submit — there is NO tool result
+ * channel involved. Keeping the format stable and grep-able lets the model
+ * recognize it reliably across calls.
+ */
+export function formatQuizSubmission(
+  quiz: QuizInput,
+  answers: QuizAnswer[],
+): string {
+  const answerById = new Map(answers.map(a => [a.id, a.value] as const));
+  const blocks = quiz.questions.map((question, idx) => {
+    const value = answerById.get(question.id)?.trim() || "(no answer)";
+    return `Q${idx + 1}. ${question.prompt}\nMy answer: ${value}`;
+  });
+  return [
+    SUBMISSION_TEXT_HEADER,
+    `Quiz: "${quiz.title}"`,
+    "",
+    blocks.join("\n\n"),
+    "",
+    "Please grade my answers.",
+  ].join("\n");
+}
 
-Style:
-- Keep the questions specific and grounded in the source. No filler trivia.
-- Match the language of the source notes.`;
+export const QUIZ_SYSTEM_PROMPT = `You are a quiz creator embedded inside Alt, a lecture note-taking app. You converse normally with the user; the only special behavior is around the \`createQuiz\` tool and a quiz submission message.
+
+=== Creating a quiz ===
+When the user asks for a quiz, or asks to regenerate one:
+1. Read the source notes attached below the "===NOTES===" line in their message (if any).
+2. Choose appropriate question types from: multiple_choice, true_false, fill_blank, short_answer. You do NOT have to use all four.
+3. Call the \`createQuiz\` tool to render the quiz. The tool input must contain ONLY the questions — never answers, hints, or solutions. For \`fill_blank\` questions use the literal token "____" (four underscores) at each blank.
+4. After calling the tool, you may optionally add a brief friendly note like "Let me know if you want hints." Do NOT promise to grade — the user submits when they're ready, and only then.
+
+=== Conversing freely ===
+After a quiz is on screen, the user is free to:
+- Ask for hints. Give hints that nudge without revealing the answer outright.
+- Ask follow-up questions about the material. Answer normally.
+- Ask for a different quiz, more questions, harder questions, etc. Call \`createQuiz\` again with new questions.
+- Ignore the quiz entirely. That's fine; respond to whatever they actually said.
+
+Do NOT volunteer to grade. Do NOT call \`createQuiz\` unless they asked for a new quiz.
+
+=== Grading a submission ===
+When the user submits a quiz, their message will start with the literal header \`${SUBMISSION_TEXT_HEADER}\` followed by the quiz title and the answers. When you see that header, grade the submission immediately.
+
+Grading format (Markdown, use literally):
+
+**Q1.** <question prompt>
+- Your answer: <user's value>
+- Correct answer: <the right answer per the source notes>
+- ✅ Correct  /  ❌ Incorrect — <one-sentence rationale grounded in the source>
+
+… repeat per question …
+
+**Score: <correct>/<total>**
+
+Rules:
+- For short_answer / fill_blank, accept reasonable paraphrases. Be honest about ambiguous cases.
+- Use the questions in the submission text to ground your grading; you can also reference the original tool call's input for the exact wording.
+- Do NOT call \`createQuiz\` while grading. After grading you may invite the user to try another quiz.
+
+=== Style ===
+- Match the language of the source notes.
+- Keep questions specific and grounded. No filler trivia.`;
 
 export interface AssemblePromptOptions {
   userPrompt: string;

@@ -6,10 +6,12 @@ import type {
 } from "@alt/plugin-sdk";
 import {
   assemblePrompt,
+  formatQuizSubmission,
   QUIZ_SYSTEM_PROMPT,
   resolveAttachmentsToNoteIds,
+  SUBMISSION_TEXT_HEADER,
 } from "./promptAssembly";
-import type { Attachment } from "./types";
+import type { Attachment, QuizInput } from "./types";
 
 const folderTree: PluginFolderNode[] = [
   {
@@ -96,6 +98,20 @@ describe("resolveAttachmentsToNoteIds", () => {
     expect(listNotesInFolder).toHaveBeenCalledWith(2);
   });
 
+  it("keeps every distinct note attachment when several are picked", async () => {
+    const attachments: Attachment[] = [
+      { kind: "note", id: 11, title: "Limits" },
+      { kind: "note", id: 12, title: "Derivatives" },
+      { kind: "note", id: 21, title: "Newton" },
+    ];
+    const ids = await resolveAttachmentsToNoteIds(
+      attachments,
+      folderTree,
+      async () => [],
+    );
+    expect(ids).toEqual([11, 12, 21]);
+  });
+
   it("preserves the order in which attachments were added", async () => {
     const ids = await resolveAttachmentsToNoteIds(
       [
@@ -127,6 +143,29 @@ describe("assemblePrompt", () => {
     expect(assembled.userMessage).toContain("## Transcript");
     expect(assembled.userMessage).toContain("## Memo");
     expect(assembled.userMessage).toContain("## Summary");
+  });
+
+  it("emits one <note> block per attached note when multiple are picked", async () => {
+    const seen: number[] = [];
+    const assembled = await assemblePrompt({
+      userPrompt: "use these",
+      attachments: [
+        { kind: "note", id: 11, title: "Limits" },
+        { kind: "note", id: 12, title: "Derivatives" },
+        { kind: "note", id: 21, title: "Newton" },
+      ],
+      folderTree,
+      listNotesInFolder: async () => [],
+      getNoteContent: async id => {
+        seen.push(id);
+        return noteContent(id, `Note ${id}`);
+      },
+    });
+    expect(seen).toEqual([11, 12, 21]);
+    expect(assembled.resolvedNoteIds).toEqual([11, 12, 21]);
+    expect(assembled.userMessage).toContain('<note id="11"');
+    expect(assembled.userMessage).toContain('<note id="12"');
+    expect(assembled.userMessage).toContain('<note id="21"');
   });
 
   it("falls back to a no-attachment hint when nothing is provided", async () => {
@@ -180,5 +219,48 @@ describe("assemblePrompt", () => {
       }),
     });
     expect(assembled.userMessage).toContain('title="Has &quot;quotes&quot;"');
+  });
+});
+
+describe("formatQuizSubmission", () => {
+  const quiz: QuizInput = {
+    title: "Algebra basics",
+    questions: [
+      {
+        id: "q1",
+        type: "multiple_choice",
+        prompt: "What is 2 + 2?",
+        choices: ["3", "4", "5"],
+      },
+      { id: "q2", type: "true_false", prompt: "The sky is blue." },
+      { id: "q3", type: "short_answer", prompt: "Define a derivative." },
+    ],
+  };
+
+  it("emits a header, the quiz title, and one Q/answer block per question", () => {
+    const text = formatQuizSubmission(quiz, [
+      { id: "q1", value: "4" },
+      { id: "q2", value: "true" },
+      { id: "q3", value: "rate of change" },
+    ]);
+    expect(text.startsWith(SUBMISSION_TEXT_HEADER)).toBe(true);
+    expect(text).toContain('Quiz: "Algebra basics"');
+    expect(text).toContain("Q1. What is 2 + 2?");
+    expect(text).toContain("My answer: 4");
+    expect(text).toContain("Q2. The sky is blue.");
+    expect(text).toContain("My answer: true");
+    expect(text).toContain("Q3. Define a derivative.");
+    expect(text).toContain("My answer: rate of change");
+    expect(text).toMatch(/Please grade/i);
+  });
+
+  it("falls back to (no answer) when a question has no submitted value", () => {
+    const text = formatQuizSubmission(quiz, [
+      { id: "q1", value: "4" },
+      // q2 missing entirely
+      { id: "q3", value: "   " },
+    ]);
+    expect(text).toContain("Q2. The sky is blue.\nMy answer: (no answer)");
+    expect(text).toContain("Q3. Define a derivative.\nMy answer: (no answer)");
   });
 });
