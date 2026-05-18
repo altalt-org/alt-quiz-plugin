@@ -1,0 +1,9 @@
+{
+  "id": "dev.react-template",
+  "name": "React Plugin Template",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "appState:read", "events:subscribe", "actions:notes"],
+  "description": "A clean React, Tailwind CSS, and shadcn/ui starter for Alt plugins.",
+  "author": "Alt"
+}
