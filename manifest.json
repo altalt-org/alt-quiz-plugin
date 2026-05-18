@@ -1,9 +1,9 @@
 {
-  "id": "dev.react-template",
-  "name": "React Plugin Template",
-  "version": "1.0.0",
+  "id": "io.altalt.quiz-generator",
+  "name": "Quiz Generator",
+  "version": "0.1.0",
   "entry": "index.html",
-  "permissions": ["storage", "appState:read", "events:subscribe", "actions:notes"],
-  "description": "A clean React, Tailwind CSS, and shadcn/ui starter for Alt plugins.",
+  "permissions": ["ai:chat", "notes:read", "storage"],
+  "description": "Generate interactive quizzes from your Alt notes, then grade your answers.",
   "author": "Alt"
 }

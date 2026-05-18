@@ -1,209 +1,488 @@
-import { useCallback, useMemo, useState } from "react";
-import { Activity, Bell, CheckCircle2, Database, FilePlus2, PanelRightOpen } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { alt } from "@alt/plugin-sdk";
-import type { PluginActiveNoteSummary, PluginStorageValue } from "@alt/plugin-sdk";
+import type {
+  PluginFolderNode,
+  PluginNoteSummary,
+} from "@alt/plugin-sdk";
+import { useChat } from "@ai-sdk/react";
+import {
+  lastAssistantMessageIsCompleteWithToolCalls,
+  type ToolUIPart,
+  type UIMessage,
+} from "ai";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+  type PromptInputMessage,
+} from "@/components/ai-elements/prompt-input";
+import { Loader } from "@/components/ai-elements/loader";
+import {
+  detectMentionAtCaret,
+  MentionPicker,
+} from "@/components/MentionPicker";
+import { QuizCard } from "@/components/QuizCard";
+import { createAltChatTransport } from "@/quiz/altTransport";
+import {
+  ChatStore,
+  deriveChatTitle,
+  type ChatIndexEntry,
+} from "@/quiz/chatStore";
+import { assemblePrompt } from "@/quiz/promptAssembly";
+import { createQuizTool, QUIZ_TOOL_PART_TYPE } from "@/quiz/quizTool";
+import {
+  QUIZ_SYSTEM_PROMPT,
+} from "@/quiz/promptAssembly";
+import type {
+  Attachment,
+  QuizOutput,
+} from "@/quiz/types";
 
-type LogEntry = {
-  id: string;
-  label: string;
-  detail: string;
-};
+const HOST_AVAILABLE = typeof window !== "undefined" && "alt" in window;
+const CHAT_TOOLS = { createQuiz: createQuizTool };
 
-function hasAltRuntime() {
-  return typeof window !== "undefined" && "alt" in window;
+function newChatId(): string {
+  return `chat-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
-function formatValue(value: unknown) {
-  return JSON.stringify(value, null, 2);
+function isQuizToolPart(part: UIMessage["parts"][number]): part is ToolUIPart {
+  return part.type === QUIZ_TOOL_PART_TYPE;
 }
 
 export default function App() {
-  const [activeNote, setActiveNote] = useState<PluginActiveNoteSummary | null>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [subscribed, setSubscribed] = useState(false);
-  const isAlt = useMemo(() => hasAltRuntime(), []);
+  const chatStore = useMemo(() => new ChatStore(alt.storage), []);
+  const transport = useMemo(
+    () => createAltChatTransport<UIMessage>({ system: QUIZ_SYSTEM_PROMPT, tools: CHAT_TOOLS }),
+    [],
+  );
 
-  const pushLog = useCallback((label: string, detail: unknown) => {
-    setLogs((current) => [
-      {
-        id: crypto.randomUUID(),
-        label,
-        detail: typeof detail === "string" ? detail : formatValue(detail),
-      },
-      ...current.slice(0, 5),
-    ]);
+  const [chatId, setChatId] = useState<string>(newChatId);
+  const [chatIndex, setChatIndex] = useState<ChatIndexEntry[]>([]);
+  const [folderTree, setFolderTree] = useState<PluginFolderNode[]>([]);
+  const [allNotes, setAllNotes] = useState<PluginNoteSummary[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [draft, setDraft] = useState("");
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const {
+    messages,
+    sendMessage,
+    addToolOutput,
+    status,
+    setMessages,
+    stop,
+  } = useChat<UIMessage>({
+    id: chatId,
+    transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    onError: error => {
+      setErrorBanner(error.message);
+    },
+  });
+
+  const refreshNotes = useCallback(async () => {
+    if (!HOST_AVAILABLE) return;
+    try {
+      const [tree, notes] = await Promise.all([
+        alt.notes.listFolders(),
+        alt.notes.list({ limit: 200 }),
+      ]);
+      setFolderTree(tree);
+      setAllNotes(notes);
+    } catch (error) {
+      setErrorBanner(error instanceof Error ? error.message : String(error));
+    }
   }, []);
 
-  const run = useCallback(
-    async (label: string, action: () => Promise<void>) => {
-      if (!isAlt) {
-        pushLog(label, "Run this bundle inside Alt to access window.alt.");
+  const refreshChatIndex = useCallback(async () => {
+    if (!HOST_AVAILABLE) return;
+    setChatIndex(await chatStore.list());
+  }, [chatStore]);
+
+  useEffect(() => {
+    void refreshNotes();
+    void refreshChatIndex();
+  }, [refreshNotes, refreshChatIndex]);
+
+  // Persist current chat whenever it settles.
+  useEffect(() => {
+    if (!HOST_AVAILABLE || messages.length === 0 || status !== "ready") return;
+    const now = new Date().toISOString();
+    void chatStore
+      .save({
+        id: chatId,
+        title: deriveChatTitle(messages),
+        messages,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .then(refreshChatIndex);
+  }, [messages, status, chatId, chatStore, refreshChatIndex]);
+
+  const handleLoadChat = useCallback(
+    async (id: string) => {
+      const loaded = await chatStore.load(id);
+      if (!loaded) return;
+      setChatId(loaded.id);
+      setMessages(loaded.messages);
+      setAttachments([]);
+      setDraft("");
+    },
+    [chatStore, setMessages],
+  );
+
+  const handleNewChat = useCallback(() => {
+    setChatId(newChatId());
+    setMessages([]);
+    setAttachments([]);
+    setDraft("");
+  }, [setMessages]);
+
+  const handleDeleteChat = useCallback(
+    async (id: string) => {
+      await chatStore.delete(id);
+      if (id === chatId) handleNewChat();
+      await refreshChatIndex();
+    },
+    [chatStore, chatId, handleNewChat, refreshChatIndex],
+  );
+
+  const handleSubmit = useCallback(
+    async (message: PromptInputMessage) => {
+      const text = message.text.trim();
+      if (!text && attachments.length === 0) return;
+      setErrorBanner(null);
+
+      let userMessage: string;
+      try {
+        const assembled = await assemblePrompt({
+          userPrompt: text,
+          attachments,
+          folderTree,
+          listNotesInFolder: folderId =>
+            alt.notes.list({ folderId, limit: 50 }),
+          getNoteContent: id => alt.notes.getContent(id),
+        });
+        userMessage = assembled.userMessage;
+      } catch (error) {
+        setErrorBanner(
+          error instanceof Error ? error.message : String(error),
+        );
         return;
       }
 
-      try {
-        await action();
-      } catch (error) {
-        pushLog(`${label} failed`, error instanceof Error ? error.message : String(error));
-      }
+      setDraft("");
+      sendMessage({ text: userMessage });
     },
-    [isAlt, pushLog],
+    [attachments, folderTree, sendMessage],
   );
 
-  const readState = useCallback(() => {
-    void run("Read active note", async () => {
-      const note = await alt.state.getActiveNoteSummary();
-      setActiveNote(note);
-      pushLog("Active note", note ?? "No active note selected");
-    });
-  }, [pushLog, run]);
+  const handleTextareaChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = event.target.value;
+      setDraft(value);
+      const caret = event.target.selectionStart ?? value.length;
+      const mention = detectMentionAtCaret(value, caret);
+      setMentionQuery(mention ? mention.query : null);
+    },
+    [],
+  );
 
-  const writeStorage = useCallback(() => {
-    void run("Storage round trip", async () => {
-      const value: PluginStorageValue = {
-        checkedAt: new Date().toISOString(),
-        source: "alt-react-plugin-template",
-      };
-      await alt.storage.set("template:last-check", value);
-      const stored = await alt.storage.get("template:last-check");
-      pushLog("Stored value", stored);
-    });
-  }, [pushLog, run]);
+  const filteredMentionResults = useMemo(() => {
+    if (mentionQuery === null) return null;
+    const query = mentionQuery.toLowerCase();
+    const folderMatches = folderTree.length
+      ? flattenFolders(folderTree).filter(folder =>
+          folder.name.toLowerCase().includes(query),
+        )
+      : [];
+    const noteMatches = allNotes.filter(note =>
+      note.title.toLowerCase().includes(query),
+    );
+    return { folderMatches, noteMatches };
+  }, [allNotes, folderTree, mentionQuery]);
 
-  const subscribeEvents = useCallback(() => {
-    void run("Subscribe to active note changes", async () => {
-      const unsubscribe = await alt.events.subscribe("activeNoteChanged", (note) => {
-        setActiveNote(note);
-        pushLog("activeNoteChanged", note ?? "No active note selected");
+  const handleMentionPick = useCallback(
+    (attachment: Attachment) => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const caret = textarea.selectionStart ?? draft.length;
+      const mention = detectMentionAtCaret(draft, caret);
+      if (!mention) return;
+      const before = draft.slice(0, mention.triggerStart);
+      const after = draft.slice(caret);
+      const nextValue = `${before}${after}`;
+      setDraft(nextValue);
+      setMentionQuery(null);
+      setAttachments(current => {
+        if (
+          current.some(
+            existing =>
+              existing.kind === attachment.kind && existing.id === attachment.id,
+          )
+        ) {
+          return current;
+        }
+        return [...current, attachment];
       });
-      setSubscribed(true);
-      pushLog("Subscribed", "Listening for active note changes for 30 seconds.");
-
-      window.setTimeout(() => {
-        void unsubscribe().then(() => {
-          setSubscribed(false);
-          pushLog("Unsubscribed", "Stopped listening for active note changes.");
-        });
-      }, 30_000);
-    });
-  }, [pushLog, run]);
-
-  const createNote = useCallback(() => {
-    void run("Create note", async () => {
-      const note = await alt.actions.invoke("notes.create", {
-        title: `Plugin note ${new Date().toLocaleTimeString()}`,
-        folderId: null,
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const pos = before.length;
+        textarea.setSelectionRange(pos, pos);
       });
-      if (note.id) {
-        await alt.actions.invoke("notes.select", { noteId: note.id });
-      }
-      pushLog("Created note", note);
-    });
-  }, [pushLog, run]);
+    },
+    [draft],
+  );
+
+  const handleQuizSubmit = useCallback(
+    (toolCallId: string, output: QuizOutput) => {
+      addToolOutput({
+        tool: "createQuiz",
+        toolCallId,
+        output,
+      });
+    },
+    [addToolOutput],
+  );
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="mx-auto flex max-w-5xl flex-col gap-5">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <Badge variant={isAlt ? "default" : "secondary"}>
-              {isAlt ? "Alt runtime connected" : "Local browser preview"}
-            </Badge>
-            <div>
-              <h1 className="text-3xl font-semibold tracking-normal">React Plugin Template</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                A small, production-shaped starting point for Alt plugins built with React, Tailwind
-                CSS, shadcn/ui, and the Alt Plugin SDK.
-              </p>
-            </div>
-          </div>
-          <Button variant="outline" onClick={readState}>
-            <PanelRightOpen />
-            Read state
+    <div className="grid h-screen grid-cols-[18rem_1fr] bg-background text-foreground">
+      <aside className="flex h-full flex-col border-r border-border/60 bg-card/40 p-3">
+        <div className="flex items-center justify-between pb-2">
+          <h2 className="text-sm font-semibold">Quizzes</h2>
+          <Button size="sm" variant="ghost" className="h-7 gap-1 px-2 text-xs" onClick={handleNewChat}>
+            <Plus className="h-3 w-3" /> New
           </Button>
-        </header>
+        </div>
+        <div className="flex-1 space-y-1 overflow-auto">
+          {chatIndex.length === 0 ? (
+            <p className="px-1 text-xs text-muted-foreground">
+              Past quizzes will appear here.
+            </p>
+          ) : (
+            chatIndex.map(entry => (
+              <div
+                key={entry.id}
+                className={`group/quiz-row flex items-center gap-1 rounded-md px-2 py-1.5 text-sm ${
+                  entry.id === chatId
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-accent/60"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => void handleLoadChat(entry.id)}
+                  className="flex-1 truncate text-left"
+                >
+                  {entry.title}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteChat(entry.id)}
+                  className="hidden rounded p-1 text-muted-foreground hover:bg-background/60 hover:text-destructive group-hover/quiz-row:flex"
+                  aria-label={`Delete ${entry.title}`}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="size-5 text-primary" />
-                Active note
-              </CardTitle>
-              <CardDescription>Permissioned app state exposed by the host.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {activeNote ? (
-                <div className="space-y-1 text-sm">
-                  <p className="font-medium">{activeNote.title}</p>
-                  <p className="text-muted-foreground">
-                    #{activeNote.id} · {activeNote.status}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No note has been loaded yet.</p>
-              )}
-            </CardContent>
-          </Card>
+      <main className="flex h-full flex-col">
+        {!HOST_AVAILABLE && (
+          <div className="border-b border-border/60 bg-amber-500/10 px-4 py-2 text-xs">
+            Run this bundle inside Alt to enable the SDK.
+          </div>
+        )}
+        {errorBanner && (
+          <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+            {errorBanner}
+          </div>
+        )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-primary" />
-                SDK checks
-              </CardTitle>
-              <CardDescription>
-                Exercise the default storage, events, and note action examples.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2 sm:grid-cols-3">
-              <Button variant="secondary" onClick={writeStorage}>
-                <Database />
-                Storage
-              </Button>
-              <Button variant={subscribed ? "default" : "secondary"} onClick={subscribeEvents}>
-                <Bell />
-                Events
-              </Button>
-              <Button variant="secondary" onClick={createNote}>
-                <FilePlus2 />
-                Note
-              </Button>
-            </CardContent>
-          </Card>
-        </section>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Activity log</CardTitle>
-            <CardDescription>
-              Keep this panel while you replace the sample behavior.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {logs.length > 0 ? (
-              <div className="space-y-3">
-                {logs.map((entry) => (
-                  <div key={entry.id} className="rounded-md border bg-background p-3">
-                    <p className="text-sm font-medium">{entry.label}</p>
-                    <pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
-                      {entry.detail}
-                    </pre>
-                  </div>
-                ))}
+        <Conversation className="flex-1">
+          <ConversationContent>
+            {messages.length === 0 ? (
+              <div className="mx-auto max-w-md py-16 text-center text-sm text-muted-foreground">
+                <p>
+                  Add files or folders you want your quiz to be generated with
+                  using the <strong>Add notes</strong> button, or mention them
+                  inline with <strong>@</strong>.
+                </p>
+                <p className="mt-2">
+                  Tell the agent what to focus on, then hit send.
+                </p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Use the controls above to call the SDK.
-              </p>
+              messages.map(message => (
+                <Message key={message.id} from={message.role}>
+                  <MessageContent>
+                    {message.parts.map((part, idx) => {
+                      const key = `${message.id}-${idx}`;
+                      if (part.type === "text") {
+                        return <MessageResponse key={key}>{part.text}</MessageResponse>;
+                      }
+                      if (isQuizToolPart(part)) {
+                        return (
+                          <QuizCard
+                            key={key}
+                            input={part.input}
+                            state={part.state as QuizCardProps["state"]}
+                            output={part.output as QuizOutput | undefined}
+                            errorText={part.errorText}
+                            chatStatus={status}
+                            onSubmit={output =>
+                              handleQuizSubmit(part.toolCallId, output)
+                            }
+                          />
+                        );
+                      }
+                      return null;
+                    })}
+                  </MessageContent>
+                </Message>
+              ))
             )}
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+            {status === "submitted" && <Loader />}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
+
+        <div className="border-t border-border/60 p-3">
+          <MentionPicker
+            attachments={attachments}
+            folderTree={folderTree}
+            allNotes={allNotes}
+            onChange={setAttachments}
+            onRefresh={refreshNotes}
+          />
+
+          <PromptInput
+            className="mt-2"
+            onSubmit={(message, event) => {
+              event?.preventDefault?.();
+              void handleSubmit(message);
+            }}
+          >
+            <PromptInputBody>
+              <PromptInputTextarea
+                ref={textareaRef}
+                value={draft}
+                placeholder="Tell the agent what to focus on…"
+                onChange={handleTextareaChange}
+              />
+            </PromptInputBody>
+            <PromptInputFooter>
+              <PromptInputTools>
+                {mentionQuery !== null && filteredMentionResults && (
+                  <MentionDropdown
+                    query={mentionQuery}
+                    folderMatches={filteredMentionResults.folderMatches}
+                    noteMatches={filteredMentionResults.noteMatches}
+                    onPick={handleMentionPick}
+                  />
+                )}
+              </PromptInputTools>
+              <PromptInputSubmit
+                status={
+                  status === "streaming"
+                    ? "streaming"
+                    : status === "submitted"
+                      ? "submitted"
+                      : "ready"
+                }
+                disabled={status === "streaming" || status === "submitted"}
+                onClick={status === "streaming" ? () => stop() : undefined}
+              />
+            </PromptInputFooter>
+          </PromptInput>
+        </div>
+      </main>
+    </div>
   );
 }
+
+function flattenFolders(
+  tree: PluginFolderNode[],
+): Array<PluginFolderNode & { depth: number }> {
+  const out: Array<PluginFolderNode & { depth: number }> = [];
+  const walk = (nodes: PluginFolderNode[], depth: number): void => {
+    for (const node of nodes) {
+      out.push({ ...node, depth });
+      walk(node.children, depth + 1);
+    }
+  };
+  walk(tree, 0);
+  return out;
+}
+
+interface MentionDropdownProps {
+  query: string;
+  folderMatches: Array<PluginFolderNode & { depth: number }>;
+  noteMatches: PluginNoteSummary[];
+  onPick: (attachment: Attachment) => void;
+}
+
+function MentionDropdown({
+  query,
+  folderMatches,
+  noteMatches,
+  onPick,
+}: MentionDropdownProps) {
+  if (folderMatches.length === 0 && noteMatches.length === 0) return null;
+  return (
+    <div className="absolute bottom-full left-0 right-0 mb-2 max-h-56 overflow-auto rounded-md border border-border/60 bg-popover p-1 shadow-md">
+      <p className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+        @{query}
+      </p>
+      {folderMatches.map(folder => (
+        <button
+          key={`mention-folder-${folder.id}`}
+          type="button"
+          onMouseDown={event => {
+            event.preventDefault();
+            onPick({ kind: "folder", id: folder.id, name: folder.name });
+          }}
+          className="block w-full truncate rounded px-2 py-1 text-left text-xs hover:bg-accent"
+        >
+          📁 {folder.name}
+        </button>
+      ))}
+      {noteMatches.map(note => (
+        <button
+          key={`mention-note-${note.id}`}
+          type="button"
+          onMouseDown={event => {
+            event.preventDefault();
+            onPick({ kind: "note", id: note.id, title: note.title });
+          }}
+          className="block w-full truncate rounded px-2 py-1 text-left text-xs hover:bg-accent"
+        >
+          📄 {note.title}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type QuizCardProps = React.ComponentProps<typeof QuizCard>;
