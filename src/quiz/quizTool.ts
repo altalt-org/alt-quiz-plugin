@@ -12,7 +12,7 @@ import { quizInputSchema, type QuizInput } from "./types";
  */
 export const createQuizTool = tool({
   description:
-    "Render a quiz to the user. The tool input must contain ONLY the questions — never answers, hints, or solutions. After calling this tool, do NOT continue with grading logic; the user may answer, ask follow-up questions, request hints, or ignore the quiz. They will submit their answers as a regular user message containing a formatted submission that you should then grade.",
+    "Render a quiz to the user. Each question is a flat object with EXACTLY four keys: `id` (unique within the quiz), `type` (one of `multiple_choice`, `true_false`, `fill_blank`, `short_answer`), `prompt`, and `choices` (an array of strings — populate this only for `multiple_choice`; for every other type set it to `[]`). For `fill_blank`, put the literal token `____` (four underscores) at each blank location inside `prompt`. The tool input must contain ONLY questions — never answers, hints, or solutions. After calling this tool, do NOT continue with grading logic; the user may answer, ask follow-up questions, request hints, or ignore the quiz. They will submit their answers as a regular user message containing a formatted submission that you should then grade.",
   inputSchema: quizInputSchema,
   outputSchema: z.object({ status: z.literal("displayed") }),
   execute: async () => ({ status: "displayed" as const }),

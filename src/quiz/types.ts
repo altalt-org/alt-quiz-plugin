@@ -20,40 +20,31 @@ export type QuizQuestionType = z.infer<typeof quizQuestionTypeSchema>;
 // minItems / maxItems / multipleOf. So no string-length or array-length
 // bounds here — wording/length guidance lives in the tool description and
 // system prompt instead.
-const baseQuestionFields = {
-  id: z.string(),
-  prompt: z.string(),
-} as const;
-
-export const quizQuestionSchema = z.discriminatedUnion("type", [
-  z
-    .object({
-      ...baseQuestionFields,
-      type: z.literal("multiple_choice"),
-      choices: z.array(z.string()),
-    })
-    .strict(),
-  z
-    .object({
-      ...baseQuestionFields,
-      type: z.literal("true_false"),
-    })
-    .strict(),
-  z
-    .object({
-      // The model must use the literal "____" as the blank marker so the UI
-      // can split the prompt into segments.
-      ...baseQuestionFields,
-      type: z.literal("fill_blank"),
-    })
-    .strict(),
-  z
-    .object({
-      ...baseQuestionFields,
-      type: z.literal("short_answer"),
-    })
-    .strict(),
-]);
+// We intentionally model questions as a single flat object instead of a
+// discriminated union. Strict-mode constrained decoding (Bedrock Converse,
+// Fireworks, OpenAI's `strict: true`) has a known quirk with `oneOf` /
+// discriminated unions: once the discriminator (`type`) is sampled, the
+// decoder still permits fields that are valid in any sibling branch — so
+// `true_false` questions sometimes arrive with a stray `choices: []`. A flat
+// schema with every field always required sidesteps that entirely. Non-MC
+// questions emit an empty `choices` array, which the UI ignores.
+export const quizQuestionSchema = z
+  .object({
+    id: z.string(),
+    type: z.enum([
+      "multiple_choice",
+      "true_false",
+      "fill_blank",
+      "short_answer",
+    ]),
+    // For `fill_blank`, the model must include the literal token "____"
+    // (four underscores) at each blank location so the UI can split the
+    // prompt into segments.
+    prompt: z.string(),
+    // Only meaningful for `multiple_choice`; pass `[]` for the other types.
+    choices: z.array(z.string()),
+  })
+  .strict();
 
 export type QuizQuestion = z.infer<typeof quizQuestionSchema>;
 

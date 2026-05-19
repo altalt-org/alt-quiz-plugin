@@ -13,7 +13,7 @@ const sampleQuiz: QuizInput = {
       prompt: "What is 2 + 2?",
       choices: ["3", "4", "5"],
     },
-    { id: "q2", type: "true_false", prompt: "The sky is blue." },
+    { id: "q2", type: "true_false", prompt: "The sky is blue.", choices: [] },
   ],
 };
 
@@ -171,8 +171,8 @@ describe("QuizCard", () => {
     const dupeQuiz: QuizInput = {
       title: "Dupe IDs",
       questions: [
-        { id: "q1", type: "true_false", prompt: "First T/F" },
-        { id: "q1", type: "true_false", prompt: "Second T/F" },
+        { id: "q1", type: "true_false", prompt: "First T/F", choices: [] },
+        { id: "q1", type: "true_false", prompt: "Second T/F", choices: [] },
       ],
     };
     const onSubmit = vi.fn();
