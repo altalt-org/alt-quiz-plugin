@@ -29,22 +29,6 @@ describe("quiz tool schemas", () => {
     ).not.toThrow();
   });
 
-  it("rejects multiple_choice questions without enough choices", () => {
-    expect(() =>
-      quizInputSchema.parse({
-        title: "Bad MC",
-        questions: [
-          {
-            id: "q1",
-            type: "multiple_choice",
-            prompt: "Pick one.",
-            choices: ["only"],
-          },
-        ],
-      }),
-    ).toThrow();
-  });
-
   it("rejects unknown question types", () => {
     expect(() =>
       quizInputSchema.parse({
@@ -54,21 +38,27 @@ describe("quiz tool schemas", () => {
     ).toThrow();
   });
 
-  it("ignores any answer-shaped fields the model might leak into input", () => {
-    const parsed = quizInputSchema.parse({
-      title: "Trying to sneak",
-      questions: [
-        {
-          id: "q1",
-          type: "multiple_choice",
-          prompt: "Capital of France?",
-          choices: ["Paris", "Madrid"],
-          // @ts-expect-error: unknown field
-          answer: "Paris",
-        },
-      ],
-    });
-    expect((parsed.questions[0] as Record<string, unknown>).answer).toBeUndefined();
+  it("rejects any answer-shaped fields the model might leak into input", () => {
+    // The schema is `.strict()` so that the JSON schema we ship with the
+    // tool definition advertises `additionalProperties: false`. Strict-mode
+    // tool calling on the provider then refuses to emit extra fields like
+    // `answer` in the first place — and Zod mirrors that behavior at
+    // parse time as belt-and-suspenders.
+    expect(() =>
+      quizInputSchema.parse({
+        title: "Trying to sneak",
+        questions: [
+          {
+            id: "q1",
+            type: "multiple_choice",
+            prompt: "Capital of France?",
+            choices: ["Paris", "Madrid"],
+            // @ts-expect-error: unknown field
+            answer: "Paris",
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it("validates submitted answer payloads", () => {

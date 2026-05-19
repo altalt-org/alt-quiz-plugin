@@ -158,6 +158,19 @@ export function QuizCard({
   const cardId = useId();
   const [answers, setAnswers] = useState<AnswerMap>({});
 
+  // Order matters: an `output-error` part has `input === undefined`, which
+  // would otherwise fall into the `!quiz` branch and render the skeleton
+  // forever. Surface the error first.
+  if (state === "output-error") {
+    return (
+      <Card className="border-destructive/40">
+        <CardContent className="py-3 text-sm text-destructive">
+          {errorText ?? "Quiz failed to generate."}
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (state === "input-streaming" || !quiz) {
     return (
       <Card className="w-full border-border/50">
@@ -165,16 +178,6 @@ export function QuizCard({
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           <CardTitle className="text-sm font-medium">Generating quiz…</CardTitle>
         </CardHeader>
-      </Card>
-    );
-  }
-
-  if (state === "output-error") {
-    return (
-      <Card className="border-destructive/40">
-        <CardContent className="py-3 text-sm text-destructive">
-          {errorText ?? "Quiz failed."}
-        </CardContent>
       </Card>
     );
   }

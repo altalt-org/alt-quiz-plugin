@@ -9,39 +9,60 @@ export const quizQuestionTypeSchema = z.enum([
 
 export type QuizQuestionType = z.infer<typeof quizQuestionTypeSchema>;
 
+// The Zod schema is the source of truth that the AI SDK serializes into the
+// JSON schema sent to the model with `strict: true`. Strict mode (used by
+// OpenAI's gpt-5.x, Bedrock's Converse API, and Fireworks' tool-calling
+// path) rejects unsupported keywords. The subset we may use:
+//   - object / array / string / number / boolean / enum / const / null
+//   - oneOf via discriminated unions (with a literal discriminator)
+//   - every property marked `required` and `additionalProperties: false`
+// Disallowed: min / max / minLength / maxLength / pattern / format /
+// minItems / maxItems / multipleOf. So no string-length or array-length
+// bounds here — wording/length guidance lives in the tool description and
+// system prompt instead.
 const baseQuestionFields = {
-  id: z.string().min(1).max(64),
-  prompt: z.string().min(1).max(800),
+  id: z.string(),
+  prompt: z.string(),
 } as const;
 
 export const quizQuestionSchema = z.discriminatedUnion("type", [
-  z.object({
-    ...baseQuestionFields,
-    type: z.literal("multiple_choice"),
-    choices: z.array(z.string().min(1).max(300)).min(2).max(6),
-  }),
-  z.object({
-    ...baseQuestionFields,
-    type: z.literal("true_false"),
-  }),
-  z.object({
-    // The model must use the literal "____" as the blank marker so the UI can
-    // split the prompt into segments.
-    ...baseQuestionFields,
-    type: z.literal("fill_blank"),
-  }),
-  z.object({
-    ...baseQuestionFields,
-    type: z.literal("short_answer"),
-  }),
+  z
+    .object({
+      ...baseQuestionFields,
+      type: z.literal("multiple_choice"),
+      choices: z.array(z.string()),
+    })
+    .strict(),
+  z
+    .object({
+      ...baseQuestionFields,
+      type: z.literal("true_false"),
+    })
+    .strict(),
+  z
+    .object({
+      // The model must use the literal "____" as the blank marker so the UI
+      // can split the prompt into segments.
+      ...baseQuestionFields,
+      type: z.literal("fill_blank"),
+    })
+    .strict(),
+  z
+    .object({
+      ...baseQuestionFields,
+      type: z.literal("short_answer"),
+    })
+    .strict(),
 ]);
 
 export type QuizQuestion = z.infer<typeof quizQuestionSchema>;
 
-export const quizInputSchema = z.object({
-  title: z.string().min(1).max(200),
-  questions: z.array(quizQuestionSchema).min(1).max(20),
-});
+export const quizInputSchema = z
+  .object({
+    title: z.string(),
+    questions: z.array(quizQuestionSchema),
+  })
+  .strict();
 
 export type QuizInput = z.infer<typeof quizInputSchema>;
 
