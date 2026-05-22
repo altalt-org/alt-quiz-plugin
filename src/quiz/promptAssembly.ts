@@ -2,7 +2,7 @@ import type {
   PluginFolderNode,
   PluginNoteContent,
   PluginNoteSummary,
-} from "@alt/plugin-sdk";
+} from "alt-plugin-sdk";
 import type { Attachment, QuizAnswer, QuizInput } from "./types";
 
 export const SUBMISSION_TEXT_HEADER = "=== QUIZ SUBMISSION ===";

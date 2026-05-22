@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PluginAiModelInfo } from "@alt/plugin-sdk";
+import type { PluginAiModelInfo } from "alt-plugin-sdk";
 import { ModelPicker } from "./ModelPicker";
 
 const models: PluginAiModelInfo[] = [

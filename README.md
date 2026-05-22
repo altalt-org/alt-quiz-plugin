@@ -13,7 +13,7 @@ AI-powered quiz generator for [Alt](https://altalt.io). The plugin reads notes y
 
 ## Required SDK version
 
-`@alt/plugin-sdk@^0.2.0` — earlier versions don't expose `alt.notes.*` or the `notes:read` permission.
+`alt-plugin-sdk@^0.2.0` — earlier versions don't expose `alt.notes.*` or the `notes:read` permission.
 
 ## Permissions
 

@@ -3,7 +3,7 @@ import type {
   PluginFolderNode,
   PluginNoteContent,
   PluginNoteSummary,
-} from "@alt/plugin-sdk";
+} from "alt-plugin-sdk";
 import {
   assemblePrompt,
   formatQuizSubmission,

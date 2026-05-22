@@ -12,13 +12,13 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { alt } from "@alt/plugin-sdk";
+import { alt } from "alt-plugin-sdk";
 import type {
   PluginAiModelId,
   PluginAiModelInfo,
   PluginFolderNode,
   PluginNoteSummary,
-} from "@alt/plugin-sdk";
+} from "alt-plugin-sdk";
 import { useChat } from "@ai-sdk/react";
 import {
   type ToolUIPart,

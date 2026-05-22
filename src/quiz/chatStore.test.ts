@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AltPluginApi } from "@alt/plugin-sdk";
-import { pluginStorageValueSchema } from "@alt/plugin-sdk";
+import type { AltPluginApi } from "alt-plugin-sdk";
+import { pluginStorageValueSchema } from "alt-plugin-sdk";
 import type { UIMessage } from "ai";
 import {
   ChatStore,

@@ -1,5 +1,5 @@
-import { createAltProvider } from "@alt/plugin-sdk/ai";
-import type { PluginAiModelId } from "@alt/plugin-sdk";
+import { createAltProvider } from "alt-plugin-sdk/ai";
+import type { PluginAiModelId } from "alt-plugin-sdk";
 import {
   convertToModelMessages,
   streamText,

@@ -1,5 +1,5 @@
 import { Cpu, Cloud, Sparkles } from "lucide-react";
-import type { PluginAiModelId, PluginAiModelInfo } from "@alt/plugin-sdk";
+import type { PluginAiModelId, PluginAiModelInfo } from "alt-plugin-sdk";
 import {
   Select,
   SelectContent,

@@ -1,4 +1,4 @@
-import type { AltPluginApi } from "@alt/plugin-sdk";
+import type { AltPluginApi } from "alt-plugin-sdk";
 import type { UIMessage } from "ai";
 
 export const CHAT_INDEX_KEY = "chats:index";

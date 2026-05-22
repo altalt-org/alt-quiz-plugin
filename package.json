@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.118",
-    "@alt/plugin-sdk": "file:../alt/vendor/alt-plugin-sdk",
+    "alt-plugin-sdk": "file:../alt/vendor/alt-plugin-sdk",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-popover": "^1.1.6",
     "@radix-ui/react-slot": "^1.2.4",

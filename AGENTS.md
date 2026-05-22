@@ -4,7 +4,7 @@ Guidance for coding agents working on this Alt plugin project.
 
 ## What This Is
 
-This is a static Alt plugin template built with React, Vite+, Tailwind CSS, shadcn/ui-style components, and `@alt/plugin-sdk`.
+This is a static Alt plugin template built with React, Vite+, Tailwind CSS, shadcn/ui-style components, and `alt-plugin-sdk`.
 
 The final artifact is the `dist/` directory. Alt imports `dist/manifest.json`, loads `dist/index.html`, and serves all plugin assets through the `alt-plugin://` protocol inside a sandboxed `WebContentsView`.
 
@@ -33,7 +33,7 @@ Plugins are sandboxed. Do not add code that depends on:
 - direct internet access
 - host app internals
 
-Use `@alt/plugin-sdk` for host interactions. The only expected global from Alt is `window.alt`, exposed by the plugin preload.
+Use `alt-plugin-sdk` for host interactions. The only expected global from Alt is `window.alt`, exposed by the plugin preload.
 
 ## Project Structure
 
@@ -62,7 +62,7 @@ Use `@alt/plugin-sdk` for host interactions. The only expected global from Alt i
 When adding a host capability:
 
 1. Add the permission to `manifest.json`.
-2. Call the capability through `@alt/plugin-sdk`.
+2. Call the capability through `alt-plugin-sdk`.
 3. Handle rejected promises and missing runtime state.
 4. Add UI copy that explains the result, not implementation details.
 5. Rebuild and import `dist/` into Alt for manual verification.

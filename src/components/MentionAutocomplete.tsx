@@ -10,7 +10,7 @@ import { Folder as FolderIcon, FileText } from "lucide-react";
 import type {
   PluginFolderNode,
   PluginNoteSummary,
-} from "@alt/plugin-sdk";
+} from "alt-plugin-sdk";
 import type { Attachment } from "@/quiz/types";
 
 export interface MentionAutocompleteProps {
