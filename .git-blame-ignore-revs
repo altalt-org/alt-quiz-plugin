@@ -1,0 +1,5 @@
+# Bulk reformats — ignored by `git blame`. GitHub uses this file automatically;
+# locally run: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# chore: adopt oxfmt formatting (printWidth 80, arrowParens avoid)
+fcee0a8acc7b0aa3336491e762423c81e4709821
