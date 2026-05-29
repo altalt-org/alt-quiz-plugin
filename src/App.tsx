@@ -93,6 +93,7 @@ function isQuizToolPart(part: QuizUIMessage["parts"][number]): part is ToolUIPar
 }
 
 export default function App() {
+  const t = useT();
   const chatStore = useMemo(() => new ChatStore(alt.storage), []);
   const modelRef = useRef<PluginAiModelId>(DEFAULT_MODEL);
   const transport = useMemo(
@@ -247,7 +248,7 @@ export default function App() {
         return;
       }
 
-      const visibleText = text || "(no prompt — generate a quiz from the attached notes)";
+      const visibleText = text || t("noPromptFallback");
       const sentAttachments = attachments;
       setDraft("");
       setAttachments([]);
@@ -259,7 +260,7 @@ export default function App() {
         },
       });
     },
-    [attachments, folderTree, sendMessage],
+    [attachments, folderTree, sendMessage, t],
   );
 
   const handleTextareaChange = useCallback(
@@ -354,7 +355,6 @@ export default function App() {
   );
 
   const sendStatus = status === "streaming" || status === "submitted";
-  const t = useT();
 
   return (
     <div className="grid h-screen grid-cols-[16rem_1fr] overflow-hidden bg-background text-foreground">
@@ -368,7 +368,7 @@ export default function App() {
             onClick={handleNewChat}
           >
             <MessageSquarePlus className="h-3.5 w-3.5" />
-            New
+            {t("newChat")}
           </Button>
         </div>
         <div className="flex-1 space-y-0.5 overflow-auto px-1.5 pb-3">
@@ -397,7 +397,7 @@ export default function App() {
                   type="button"
                   onClick={() => void handleDeleteChat(entry.id)}
                   className="hidden rounded p-1 text-muted-foreground hover:bg-background/60 hover:text-destructive group-hover/quiz-row:flex"
-                  aria-label={`Delete ${entry.title}`}
+                  aria-label={t("deleteChat", { title: entry.title })}
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -410,7 +410,7 @@ export default function App() {
       <main className="flex h-full min-h-0 min-w-0 flex-col">
         {!HOST_AVAILABLE && (
           <div className="border-b border-border/60 bg-amber-500/10 px-4 py-2 text-xs">
-            Run this bundle inside Alt to enable the SDK.
+            {t("hostUnavailable")}
           </div>
         )}
         {errorBanner && (
@@ -424,8 +424,8 @@ export default function App() {
             {messages.length === 0 ? (
               <ConversationEmptyState
                 icon={<Plus className="h-6 w-6" />}
-                title="Build a quiz from your notes"
-                description="Use Add notes or type @ to pull in folders and notes, then describe what the agent should focus on."
+                title={t("emptyTitle")}
+                description={t("emptyDescription")}
               />
             ) : (
               (() => {
@@ -530,7 +530,7 @@ export default function App() {
             {status === "submitted" && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader />
-                Thinking…
+                {t("thinking")}
               </div>
             )}
           </ConversationContent>
@@ -560,7 +560,7 @@ export default function App() {
                   ref={textareaRef}
                   value={draft}
                   className="w-full text-left"
-                  placeholder="Ask for a quiz. Add notes with + or @, then describe what to focus on… (⌘/Ctrl + Enter to send)"
+                  placeholder={t("promptPlaceholder")}
                   onChange={handleTextareaChange}
                   onKeyDown={handleTextareaKeyDown}
                 />

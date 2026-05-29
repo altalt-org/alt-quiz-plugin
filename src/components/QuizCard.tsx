@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useT } from "@/i18n";
 import {
   quizInputSchema,
   type QuizAnswer,
@@ -73,6 +74,7 @@ function QuestionField({
   disabled: boolean;
   onChange: (next: string) => void;
 }) {
+  const t = useT();
   switch (question.type) {
     case "multiple_choice":
       return (
@@ -115,7 +117,7 @@ function QuestionField({
                 checked={value === option}
                 onChange={() => onChange(option)}
               />
-              <span className="capitalize">{option}</span>
+              <span>{t(option === "true" ? "answerTrue" : "answerFalse")}</span>
             </label>
           ))}
         </div>
@@ -125,7 +127,7 @@ function QuestionField({
         <input
           type="text"
           className="w-full rounded-md border border-border/60 bg-background/40 p-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          placeholder="Type your answer"
+          placeholder={t("typeAnswer")}
           disabled={disabled}
           value={value}
           onChange={event => onChange(event.target.value)}
@@ -136,7 +138,7 @@ function QuestionField({
         <textarea
           rows={3}
           className="w-full resize-y rounded-md border border-border/60 bg-background/40 p-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          placeholder="Write a short answer"
+          placeholder={t("shortAnswer")}
           disabled={disabled}
           value={value}
           onChange={event => onChange(event.target.value)}
@@ -154,6 +156,7 @@ export function QuizCard({
   submittedAnswers,
   onSubmit,
 }: QuizCardProps) {
+  const t = useT();
   const quiz = useMemo(() => parseInput(input), [input]);
   const cardId = useId();
   const [answers, setAnswers] = useState<AnswerMap>({});
@@ -165,7 +168,7 @@ export function QuizCard({
     return (
       <Card className="border-destructive/40">
         <CardContent className="py-3 text-sm text-destructive">
-          {errorText ?? "Quiz failed to generate."}
+          {errorText ?? t("quizFailed")}
         </CardContent>
       </Card>
     );
@@ -176,7 +179,9 @@ export function QuizCard({
       <Card className="w-full border-border/50">
         <CardHeader className="flex flex-row items-center gap-2 pb-3">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <CardTitle className="text-sm font-medium">Generating quiz…</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            {t("generatingQuiz")}
+          </CardTitle>
         </CardHeader>
       </Card>
     );
@@ -222,7 +227,9 @@ export function QuizCard({
           return (
             <div key={fieldKey} className="space-y-2">
               <div className="text-sm font-medium leading-relaxed">
-                <span className="mr-2 text-muted-foreground">Q{idx + 1}.</span>
+                <span className="mr-2 text-muted-foreground">
+                  {t("questionLabel", { n: idx + 1 })}
+                </span>
                 {question.type === "fill_blank" ? (
                   <FillBlankPrompt prompt={question.prompt} />
                 ) : (
@@ -243,7 +250,7 @@ export function QuizCard({
         <div className="flex items-center justify-end gap-2 pt-2">
           {submitted ? (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Submitted
+              <CheckCircle2 className="h-3.5 w-3.5" /> {t("submittedLabel")}
             </span>
           ) : (
             <Button
@@ -251,7 +258,7 @@ export function QuizCard({
               disabled={!canSubmit || !allAnswered}
               onClick={handleSubmit}
             >
-              Submit answers
+              {t("submitAnswers")}
             </Button>
           )}
         </div>

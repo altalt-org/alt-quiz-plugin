@@ -26,6 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useT } from "@/i18n";
 import type { Attachment } from "@/quiz/types";
 
 export interface MentionPickerProps {
@@ -71,6 +72,7 @@ function TreeRow({
   onSelect,
   meta,
 }: TreeRowProps) {
+  const t = useT();
   return (
     <div
       data-testid="tree-row"
@@ -83,7 +85,9 @@ function TreeRow({
         type="button"
         onClick={hasChildren ? onToggle : undefined}
         className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground"
-        aria-label={hasChildren ? (expanded ? "Collapse" : "Expand") : undefined}
+        aria-label={
+          hasChildren ? (expanded ? t("collapse") : t("expand")) : undefined
+        }
         tabIndex={hasChildren ? 0 : -1}
       >
         {hasChildren ? (
@@ -247,6 +251,7 @@ export function MentionPicker({
   onChange,
   onRefresh,
 }: MentionPickerProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -312,7 +317,7 @@ export function MentionPicker({
             data-testid="mention-picker-trigger"
           >
             <Plus className="h-3 w-3" />
-            Add notes
+            {t("addNotes")}
           </Button>
         </PopoverTrigger>
         <PopoverContent
@@ -326,7 +331,7 @@ export function MentionPicker({
               autoFocus
               value={query}
               onChange={event => setQuery(event.target.value)}
-              placeholder="Search notes and folders…"
+              placeholder={t("searchPlaceholder")}
               className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
             />
           </div>
@@ -362,7 +367,7 @@ export function MentionPicker({
               ))}
               {folderTree.length === 0 && rootlessNotes.length === 0 && (
                 <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-                  No notes yet.
+                  {t("noNotes")}
                 </p>
               )}
             </div>
@@ -388,7 +393,12 @@ export function MentionPicker({
             type="button"
             onClick={() => handleRemove(attachment)}
             className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
-            aria-label={`Remove ${attachment.kind === "folder" ? attachment.name : attachment.title}`}
+            aria-label={t("removeAttachment", {
+              name:
+                attachment.kind === "folder"
+                  ? attachment.name
+                  : attachment.title,
+            })}
           >
             <X className="h-2.5 w-2.5" />
           </button>

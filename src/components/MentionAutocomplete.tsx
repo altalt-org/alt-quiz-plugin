@@ -11,6 +11,7 @@ import type {
   PluginFolderNode,
   PluginNoteSummary,
 } from "alt-plugin-sdk";
+import { useT } from "@/i18n";
 import type { Attachment } from "@/quiz/types";
 
 export interface MentionAutocompleteProps {
@@ -84,6 +85,7 @@ export const MentionAutocomplete = forwardRef<
   { query, folderTree, allNotes, onPick, onDismiss },
   ref,
 ) {
+  const t = useT();
   const rows = useMemo(
     () => buildRows(folderTree, allNotes, query),
     [folderTree, allNotes, query],
@@ -140,7 +142,7 @@ export const MentionAutocomplete = forwardRef<
         data-testid="mention-autocomplete"
         className="absolute bottom-full left-0 right-0 mb-2 rounded-md border border-border/60 bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
       >
-        No matches for <span className="font-mono">@{query}</span>
+        {t("noMatches", { query: `@${query}` })}
       </div>
     );
   }
@@ -176,7 +178,7 @@ export const MentionAutocomplete = forwardRef<
           )}
           <span className="truncate">{row.label}</span>
           <span className="ml-auto text-[10px] text-muted-foreground">
-            {row.attachment.kind}
+            {t(row.attachment.kind === "folder" ? "kindFolder" : "kindNote")}
           </span>
         </button>
       ))}

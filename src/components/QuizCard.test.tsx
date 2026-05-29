@@ -55,7 +55,7 @@ describe("QuizCard", () => {
     const submit = screen.getByRole("button", { name: /submit answers/i });
     expect(submit).toBeDisabled();
     await user.click(screen.getByLabelText("4"));
-    await user.click(screen.getByLabelText("true"));
+    await user.click(screen.getByLabelText(/true/i));
     expect(submit).toBeEnabled();
   });
 
@@ -71,7 +71,7 @@ describe("QuizCard", () => {
       />,
     );
     await user.click(screen.getByLabelText("4"));
-    await user.click(screen.getByLabelText("true"));
+    await user.click(screen.getByLabelText(/true/i));
     await user.click(screen.getByRole("button", { name: /submit answers/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       [
@@ -134,12 +134,12 @@ describe("QuizCard", () => {
 
     // Pick "4" for q1 and "true" for q2 in card ONE.
     await user.click(within(cardOne).getByLabelText("4"));
-    await user.click(within(cardOne).getByLabelText("true"));
+    await user.click(within(cardOne).getByLabelText(/true/i));
 
     // Now interact with card TWO. Pick a different multiple-choice answer
     // and the opposite true/false. Card ONE's state must NOT change.
     await user.click(within(cardTwo).getByLabelText("3"));
-    await user.click(within(cardTwo).getByLabelText("false"));
+    await user.click(within(cardTwo).getByLabelText(/false/i));
 
     await user.click(
       within(cardOne).getByRole("button", { name: /submit answers/i }),
@@ -185,8 +185,8 @@ describe("QuizCard", () => {
         onSubmit={onSubmit}
       />,
     );
-    const trueRadios = screen.getAllByLabelText("true");
-    const falseRadios = screen.getAllByLabelText("false");
+    const trueRadios = screen.getAllByLabelText(/true/i);
+    const falseRadios = screen.getAllByLabelText(/false/i);
     expect(trueRadios).toHaveLength(2);
     await user.click(trueRadios[0]);
     await user.click(falseRadios[1]);

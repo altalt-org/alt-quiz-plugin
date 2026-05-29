@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useT } from "@/i18n";
 
 export interface ModelPickerProps {
   models: PluginAiModelInfo[];
@@ -28,6 +29,7 @@ export function ModelPicker({
   onChange,
   toolsRequired = true,
 }: ModelPickerProps) {
+  const t = useT();
   return (
     <Select
       value={value}
@@ -38,12 +40,12 @@ export function ModelPicker({
         data-testid="model-picker-trigger"
         className="h-7 gap-1 border-border/60 bg-transparent px-2 text-xs"
       >
-        <SelectValue placeholder="Model" />
+        <SelectValue placeholder={t("modelPlaceholder")} />
       </SelectTrigger>
       <SelectContent align="start">
         {models.length === 0 ? (
           <div className="px-2 py-1.5 text-xs text-muted-foreground">
-            No models available
+            {t("noModels")}
           </div>
         ) : (
           models.map(model => {
@@ -65,8 +67,8 @@ export function ModelPicker({
                   {disabled && (
                     <span className="text-[10px] text-muted-foreground">
                       {toolsRequired && !model.supportsTools
-                        ? "no tools"
-                        : "unavailable"}
+                        ? t("noTools")
+                        : t("unavailable")}
                     </span>
                   )}
                 </span>

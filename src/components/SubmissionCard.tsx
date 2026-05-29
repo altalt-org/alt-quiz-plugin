@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import { useT } from "@/i18n";
 
 export interface SubmissionCardProps {
   quizTitle: string;
@@ -9,6 +10,7 @@ export function SubmissionCard({
   quizTitle,
   answerCount,
 }: SubmissionCardProps) {
+  const t = useT();
   return (
     <div
       data-testid="submission-card"
@@ -16,7 +18,10 @@ export function SubmissionCard({
     >
       <CheckCircle2 className="h-3.5 w-3.5" />
       <span>
-        Submitted {answerCount} {answerCount === 1 ? "answer" : "answers"}
+        {t(
+          answerCount === 1 ? "submittedAnswerOne" : "submittedAnswerOther",
+          { count: answerCount },
+        )}
       </span>
       <span className="text-primary/70">·</span>
       <span className="max-w-48 truncate text-primary/80">{quizTitle}</span>
