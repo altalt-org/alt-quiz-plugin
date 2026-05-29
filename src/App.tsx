@@ -20,6 +20,7 @@ import type {
   PluginNoteSummary,
 } from "alt-plugin-sdk";
 import { useChat } from "@ai-sdk/react";
+import { useT } from "./i18n";
 import {
   type ToolUIPart,
   type UIMessage,
@@ -353,12 +354,13 @@ export default function App() {
   );
 
   const sendStatus = status === "streaming" || status === "submitted";
+  const t = useT();
 
   return (
     <div className="grid h-screen grid-cols-[16rem_1fr] overflow-hidden bg-background text-foreground">
       <aside className="flex h-full min-h-0 flex-col border-r border-border/60 bg-card/40">
         <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-          <h2 className="text-sm font-semibold">Quiz Generator</h2>
+          <h2 className="text-sm font-semibold">{t("title")}</h2>
           <Button
             size="sm"
             variant="ghost"
@@ -372,7 +374,7 @@ export default function App() {
         <div className="flex-1 space-y-0.5 overflow-auto px-1.5 pb-3">
           {chatIndex.length === 0 ? (
             <p className="px-2 py-2 text-xs text-muted-foreground">
-              Past quizzes will appear here.
+              {t("emptyHistory")}
             </p>
           ) : (
             chatIndex.map(entry => (

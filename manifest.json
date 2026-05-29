@@ -3,7 +3,23 @@
   "name": "Quiz Generator",
   "version": "0.1.0",
   "entry": "index.html",
-  "permissions": ["ai:chat", "notes:read", "storage"],
+  "permissions": [
+    "ai:chat",
+    "notes:read",
+    "storage",
+    "settings:read",
+    "events:subscribe"
+  ],
   "description": "Generate interactive quizzes from your Alt notes, then grade your answers.",
-  "author": "Alt"
+  "author": "Alt",
+  "locales": {
+    "ko": {
+      "name": "퀴즈 생성기",
+      "description": "Alt 노트로 대화형 퀴즈를 만들고 답안을 채점하세요."
+    },
+    "de": {
+      "name": "Quiz-Generator",
+      "description": "Erstelle interaktive Quizze aus deinen Alt-Notizen und bewerte deine Antworten."
+    }
+  }
 }
