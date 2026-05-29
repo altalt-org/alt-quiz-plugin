@@ -21,5 +21,18 @@
       "name": "Quiz-Generator",
       "description": "Erstelle interaktive Quizze aus deinen Alt-Notizen und bewerte deine Antworten."
     }
+  },
+  "marketplace": {
+    "category": "education",
+    "longDescription": "Turn any note into a study session. Quiz Generator reads your selected Alt notes and creates multiple-choice, true/false, and short-answer questions, grades your responses, and explains the answers. Everything runs through Alt's built-in AI — no extra setup, no API keys.",
+    "screenshots": ["screenshots/preview.png"],
+    "locales": {
+      "ko": {
+        "longDescription": "노트를 학습 세션으로 바꿔보세요. 퀴즈 생성기는 선택한 Alt 노트를 읽어 객관식, 참/거짓, 단답형 문제를 만들고, 답안을 채점한 뒤 해설을 제공합니다. 모든 과정은 Alt 내장 AI로 실행되며 별도 설정이나 API 키가 필요 없습니다."
+      },
+      "de": {
+        "longDescription": "Verwandle jede Notiz in eine Lernsession. Der Quiz-Generator liest deine ausgewählten Alt-Notizen, erstellt Multiple-Choice-, Wahr/Falsch- und Kurzantwortfragen, bewertet deine Antworten und erklärt sie. Alles läuft über die in Alt integrierte KI — ohne zusätzliche Einrichtung und ohne API-Schlüssel."
+      }
+    }
   }
 }
