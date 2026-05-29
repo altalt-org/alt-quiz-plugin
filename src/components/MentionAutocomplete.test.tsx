@@ -73,18 +73,18 @@ describe("MentionAutocomplete", () => {
     const { ref, onPick } = buildHarness("");
     expect(ref.current).not.toBeNull();
     expect(
-      screen.getByTestId("mention-autocomplete").querySelector(
-        "[data-mention-index='0']",
-      ),
+      screen
+        .getByTestId("mention-autocomplete")
+        .querySelector("[data-mention-index='0']"),
     ).toHaveAttribute("data-active", "true");
 
     act(() => {
       expect(ref.current!.handleKeyDown(key("ArrowDown"))).toBe(true);
     });
     expect(
-      screen.getByTestId("mention-autocomplete").querySelector(
-        "[data-mention-index='1']",
-      ),
+      screen
+        .getByTestId("mention-autocomplete")
+        .querySelector("[data-mention-index='1']"),
     ).toHaveAttribute("data-active", "true");
 
     act(() => {

@@ -98,14 +98,16 @@ const strings: Record<Locale, Record<StringKey, string>> = {
     newChat: "Neu",
     emptyHistory: "Frühere Quizze erscheinen hier.",
     deleteChat: "{title} löschen",
-    hostUnavailable: "Führe dieses Bundle in Alt aus, um das SDK zu aktivieren.",
+    hostUnavailable:
+      "Führe dieses Bundle in Alt aus, um das SDK zu aktivieren.",
     emptyTitle: "Erstelle ein Quiz aus deinen Notizen",
     emptyDescription:
       "Nutze „Notizen hinzufügen“ oder tippe @, um Ordner und Notizen einzubinden, und beschreibe dann, worauf sich der Agent konzentrieren soll.",
     thinking: "Denkt nach…",
     promptPlaceholder:
       "Bitte um ein Quiz. Füge mit + oder @ Notizen hinzu und beschreibe den Fokus… (⌘/Strg + Enter zum Senden)",
-    noPromptFallback: "(keine Eingabe – Quiz aus den angehängten Notizen erstellen)",
+    noPromptFallback:
+      "(keine Eingabe – Quiz aus den angehängten Notizen erstellen)",
     quizFailed: "Quiz konnte nicht erstellt werden.",
     generatingQuiz: "Quiz wird erstellt…",
     questionLabel: "Frage {n}.",
@@ -159,7 +161,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
     void alt.settings
       .get("language")
-      .then((value) => {
+      .then(value => {
         if (active) setLocale(normalize(value));
       })
       // No host (e.g. standalone preview) — keep the default locale.
@@ -169,7 +171,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       .subscribe("settingChanged", ({ key, value }) => {
         if (key === "language") setLocale(normalize(value));
       })
-      .then((stop) => {
+      .then(stop => {
         if (active) unsubscribe = stop;
         else void stop();
       })

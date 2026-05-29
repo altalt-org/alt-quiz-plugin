@@ -20,9 +20,10 @@ if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
 // Radix Select uses pointer capture, which jsdom does not implement.
 if (typeof Element !== "undefined") {
   if (!Element.prototype.hasPointerCapture) {
-    Element.prototype.hasPointerCapture = function hasPointerCapture(): boolean {
-      return false;
-    };
+    Element.prototype.hasPointerCapture =
+      function hasPointerCapture(): boolean {
+        return false;
+      };
   }
   if (!Element.prototype.setPointerCapture) {
     Element.prototype.setPointerCapture = function setPointerCapture(): void {};

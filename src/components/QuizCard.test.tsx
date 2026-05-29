@@ -39,7 +39,9 @@ describe("QuizCard", () => {
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: /submit answers/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /submit answers/i }),
+    ).toBeDisabled();
   });
 
   it("requires every question to be answered before Submit enables", async () => {
@@ -96,7 +98,9 @@ describe("QuizCard", () => {
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.queryByRole("button", { name: /submit answers/i })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /submit answers/i }),
+    ).toBeNull();
     expect(screen.getByText(/submitted/i)).toBeInTheDocument();
   });
 

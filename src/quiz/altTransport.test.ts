@@ -8,7 +8,9 @@ describe("createAltChatTransport", () => {
       createProvider: (() => ({
         languageModel: () => ({}) as never,
       })) as never,
-      streamText: (() => ({ toUIMessageStream: () => new ReadableStream() })) as never,
+      streamText: (() => ({
+        toUIMessageStream: () => new ReadableStream(),
+      })) as never,
     });
     await expect(
       transport.reconnectToStream({ chatId: "anything" }),
@@ -143,8 +145,7 @@ describe("createAltChatTransport", () => {
     };
     const allParts = args.messages.flatMap(m => m.content);
     const danglingCall = allParts.find(
-      part =>
-        part.type === "tool-call" && part.toolCallId === "call_dangling",
+      part => part.type === "tool-call" && part.toolCallId === "call_dangling",
     );
     expect(danglingCall).toBeUndefined();
   });

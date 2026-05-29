@@ -27,10 +27,7 @@ function expandUserMessages<UI_MESSAGE extends UIMessage>(
     const nonTextParts = message.parts.filter(part => part.type !== "text");
     return {
       ...message,
-      parts: [
-        { type: "text", text: fullPrompt },
-        ...nonTextParts,
-      ],
+      parts: [{ type: "text", text: fullPrompt }, ...nonTextParts],
     } as UI_MESSAGE;
   });
 }

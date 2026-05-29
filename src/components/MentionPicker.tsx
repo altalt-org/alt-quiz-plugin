@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Folder as FolderIcon,
   FolderOpen,
@@ -14,10 +9,7 @@ import {
   ChevronDown,
   Search,
 } from "lucide-react";
-import type {
-  PluginFolderNode,
-  PluginNoteSummary,
-} from "alt-plugin-sdk";
+import type { PluginFolderNode, PluginNoteSummary } from "alt-plugin-sdk";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -175,8 +167,7 @@ function FolderRows({
     <>
       {folders.map(folder => {
         if (!folderMatchesQuery(folder, query, notesByFolder)) return null;
-        const isExpanded =
-          expanded.has(folder.id) || (query.length > 0);
+        const isExpanded = expanded.has(folder.id) || query.length > 0;
         const folderNotes = notesByFolder.get(folder.id) ?? [];
         const hasChildren =
           folder.children.length > 0 || folderNotes.length > 0;
@@ -336,10 +327,7 @@ export function MentionPicker({
             />
           </div>
           <ScrollArea className="h-80">
-            <div
-              className="p-1"
-              data-testid="mention-tree"
-            >
+            <div className="p-1" data-testid="mention-tree">
               <FolderRows
                 folders={folderTree}
                 depth={0}

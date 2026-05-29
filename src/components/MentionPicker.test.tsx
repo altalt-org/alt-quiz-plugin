@@ -9,9 +9,7 @@ const folderTree = [
     id: 1,
     name: "Math",
     parentId: null,
-    children: [
-      { id: 2, name: "Calc 1", parentId: 1, children: [] },
-    ],
+    children: [{ id: 2, name: "Calc 1", parentId: 1, children: [] }],
   },
   { id: 3, name: "Physics", parentId: null, children: [] },
 ];

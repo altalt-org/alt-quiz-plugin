@@ -5,6 +5,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  fmt: {
+    printWidth: 80,
+    arrowParens: "avoid",
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

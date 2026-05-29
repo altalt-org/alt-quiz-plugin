@@ -174,7 +174,9 @@ export async function assemblePrompt(
   const contents = await Promise.all(
     ids.map(id => options.getNoteContent(id).catch(() => null)),
   );
-  const blocks = contents.filter((c): c is PluginNoteContent => c !== null).map(buildNoteBlock);
+  const blocks = contents
+    .filter((c): c is PluginNoteContent => c !== null)
+    .map(buildNoteBlock);
 
   const trimmedPrompt = options.userPrompt.trim();
   const userMessage = blocks.length

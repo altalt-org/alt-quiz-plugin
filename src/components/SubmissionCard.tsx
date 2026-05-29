@@ -18,10 +18,9 @@ export function SubmissionCard({
     >
       <CheckCircle2 className="h-3.5 w-3.5" />
       <span>
-        {t(
-          answerCount === 1 ? "submittedAnswerOne" : "submittedAnswerOther",
-          { count: answerCount },
-        )}
+        {t(answerCount === 1 ? "submittedAnswerOne" : "submittedAnswerOther", {
+          count: answerCount,
+        })}
       </span>
       <span className="text-primary/70">·</span>
       <span className="max-w-48 truncate text-primary/80">{quizTitle}</span>

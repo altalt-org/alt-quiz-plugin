@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FileText,
   Folder as FolderIcon,
@@ -21,10 +15,7 @@ import type {
 } from "alt-plugin-sdk";
 import { useChat } from "@ai-sdk/react";
 import { useT } from "./i18n";
-import {
-  type ToolUIPart,
-  type UIMessage,
-} from "ai";
+import { type ToolUIPart, type UIMessage } from "ai";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -88,7 +79,9 @@ function newChatId(): string {
   return `chat-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
-function isQuizToolPart(part: QuizUIMessage["parts"][number]): part is ToolUIPart {
+function isQuizToolPart(
+  part: QuizUIMessage["parts"][number],
+): part is ToolUIPart {
   return part.type === QUIZ_TOOL_PART_TYPE;
 }
 
@@ -118,23 +111,17 @@ export default function App() {
   } | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [models, setModels] = useState<PluginAiModelInfo[]>([]);
-  const [selectedModel, setSelectedModel] = useState<PluginAiModelId>(
-    DEFAULT_MODEL,
-  );
+  const [selectedModel, setSelectedModel] =
+    useState<PluginAiModelId>(DEFAULT_MODEL);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const autocompleteRef = useRef<MentionAutocompleteHandle | null>(null);
 
-  const {
-    messages,
-    sendMessage,
-    status,
-    setMessages,
-    stop,
-  } = useChat<QuizUIMessage>({
-    id: chatId,
-    transport,
-    onError: error => setErrorBanner(error.message),
-  });
+  const { messages, sendMessage, status, setMessages, stop } =
+    useChat<QuizUIMessage>({
+      id: chatId,
+      transport,
+      onError: error => setErrorBanner(error.message),
+    });
 
   // Keep ref in sync so the transport always reads the latest selection.
   useEffect(() => {
@@ -441,90 +428,88 @@ export default function App() {
                   }
                 }
                 return messages.map(message => {
-                const submission =
-                  message.role === "user"
-                    ? message.metadata?.submission
-                    : undefined;
-                if (submission) {
+                  const submission =
+                    message.role === "user"
+                      ? message.metadata?.submission
+                      : undefined;
+                  if (submission) {
+                    return (
+                      <div key={message.id} className="flex justify-end">
+                        <SubmissionCard
+                          quizTitle={submission.quizTitle}
+                          answerCount={submission.answers.length}
+                        />
+                      </div>
+                    );
+                  }
+                  const attachmentChips =
+                    message.role === "user"
+                      ? (message.metadata?.attachments ?? [])
+                      : [];
+                  const hasToolPart = message.parts.some(isQuizToolPart);
                   return (
-                    <div
-                      key={message.id}
-                      className="flex justify-end"
-                    >
-                      <SubmissionCard
-                        quizTitle={submission.quizTitle}
-                        answerCount={submission.answers.length}
-                      />
-                    </div>
-                  );
-                }
-                const attachmentChips =
-                  message.role === "user"
-                    ? message.metadata?.attachments ?? []
-                    : [];
-                const hasToolPart = message.parts.some(isQuizToolPart);
-                return (
-                  <Message key={message.id} from={message.role}>
-                    <MessageContent
-                      className={hasToolPart ? "w-full max-w-full" : undefined}
-                    >
-                      {attachmentChips.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {attachmentChips.map(att => (
-                            <span
-                              key={`${att.kind}:${att.id}`}
-                              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-xs"
-                            >
-                              {att.kind === "folder" ? (
-                                <FolderIcon className="h-3 w-3" />
-                              ) : (
-                                <FileText className="h-3 w-3" />
-                              )}
-                              <span className="max-w-40 truncate">
-                                {att.kind === "folder" ? att.name : att.title}
+                    <Message key={message.id} from={message.role}>
+                      <MessageContent
+                        className={
+                          hasToolPart ? "w-full max-w-full" : undefined
+                        }
+                      >
+                        {attachmentChips.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {attachmentChips.map(att => (
+                              <span
+                                key={`${att.kind}:${att.id}`}
+                                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-xs"
+                              >
+                                {att.kind === "folder" ? (
+                                  <FolderIcon className="h-3 w-3" />
+                                ) : (
+                                  <FileText className="h-3 w-3" />
+                                )}
+                                <span className="max-w-40 truncate">
+                                  {att.kind === "folder" ? att.name : att.title}
+                                </span>
                               </span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {message.parts.map((part, idx) => {
-                        const key = `${message.id}-${idx}`;
-                        if (part.type === "text") {
-                          return (
-                            <MessageResponse key={key}>
-                              {part.text}
-                            </MessageResponse>
-                          );
-                        }
-                        if (isQuizToolPart(part)) {
-                          const submittedAnswers = submissionsByToolCallId.get(
-                            part.toolCallId,
-                          );
-                          return (
-                            <QuizCard
-                              key={key}
-                              input={part.input}
-                              state={part.state as QuizCardProps["state"]}
-                              errorText={part.errorText}
-                              chatStatus={status}
-                              submitted={submittedAnswers !== undefined}
-                              submittedAnswers={submittedAnswers}
-                              onSubmit={answers =>
-                                handleQuizSubmit(
-                                  part.toolCallId,
-                                  answers,
-                                  part.input,
-                                )
-                              }
-                            />
-                          );
-                        }
-                        return null;
-                      })}
-                    </MessageContent>
-                  </Message>
-                );
-              });
+                            ))}
+                          </div>
+                        )}
+                        {message.parts.map((part, idx) => {
+                          const key = `${message.id}-${idx}`;
+                          if (part.type === "text") {
+                            return (
+                              <MessageResponse key={key}>
+                                {part.text}
+                              </MessageResponse>
+                            );
+                          }
+                          if (isQuizToolPart(part)) {
+                            const submittedAnswers =
+                              submissionsByToolCallId.get(part.toolCallId);
+                            return (
+                              <QuizCard
+                                key={key}
+                                input={part.input}
+                                state={part.state as QuizCardProps["state"]}
+                                errorText={part.errorText}
+                                chatStatus={status}
+                                submitted={submittedAnswers !== undefined}
+                                submittedAnswers={submittedAnswers}
+                                onSubmit={answers =>
+                                  handleQuizSubmit(
+                                    part.toolCallId,
+                                    answers,
+                                    part.input,
+                                  )
+                                }
+                              />
+                            );
+                          }
+                          return null;
+                        })}
+                      </MessageContent>
+                    </Message>
+                  );
+                });
               })()
             )}
             {status === "submitted" && (

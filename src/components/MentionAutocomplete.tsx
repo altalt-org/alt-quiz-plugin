@@ -7,10 +7,7 @@ import {
   useState,
 } from "react";
 import { Folder as FolderIcon, FileText } from "lucide-react";
-import type {
-  PluginFolderNode,
-  PluginNoteSummary,
-} from "alt-plugin-sdk";
+import type { PluginFolderNode, PluginNoteSummary } from "alt-plugin-sdk";
 import { useT } from "@/i18n";
 import type { Attachment } from "@/quiz/types";
 

@@ -18,7 +18,11 @@ type AnswerMap = Record<number, string>;
 
 export interface QuizCardProps {
   input: unknown;
-  state: "input-streaming" | "input-available" | "output-available" | "output-error";
+  state:
+    | "input-streaming"
+    | "input-available"
+    | "output-available"
+    | "output-error";
   errorText?: string | undefined;
   chatStatus: "submitted" | "streaming" | "ready" | "error";
   /**
@@ -200,8 +204,8 @@ export function QuizCard({
     : {};
   const effectiveAnswers = submitted ? lockedAnswersMap : answers;
   const canSubmit = chatStatus === "ready" && !submitted;
-  const allAnswered = quiz.questions.every(
-    (_, idx) => (effectiveAnswers[idx] ?? "").trim(),
+  const allAnswered = quiz.questions.every((_, idx) =>
+    (effectiveAnswers[idx] ?? "").trim(),
   );
 
   const handleChange = (idx: number, value: string): void => {
